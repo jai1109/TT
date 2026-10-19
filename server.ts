@@ -32,22 +32,97 @@ if (geminiApiKey) {
 }
 
 // WebSocket Server for Gemini Live API Voice Conversations
-const wss = new WebSocketServer({ server, path: '/live' });
+const wss = new WebSocketServer({ noServer: true });
 
-wss.on('connection', async (clientWs: WebSocket) => {
-  console.log('Client connected to Live Voice API');
+server.on('upgrade', (request, socket, head) => {
+  try {
+    const url = new URL(request.url || '', `http://${request.headers.host || 'localhost'}`);
+    if (url.pathname === '/live' || url.pathname === '/live/') {
+      wss.handleUpgrade(request, socket, head, (clientWs) => {
+        wss.emit('connection', clientWs, request);
+      });
+    }
+  } catch (err: any) {
+    console.error('Upgrade routing error:', err.message);
+  }
+});
+
+wss.on('connection', async (clientWs: WebSocket, request: http.IncomingMessage) => {
+  console.log('Client connected to Live Voice API from', request.socket?.remoteAddress);
+
+  clientWs.on('error', (err) => {
+    console.warn('Client WebSocket socket error:', err.message);
+  });
 
   if (!ai) {
-    clientWs.send(
-      JSON.stringify({
-        error: 'Gemini API key is not configured on the server. Please ensure GEMINI_API_KEY is available.',
-      })
-    );
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(
+        JSON.stringify({
+          error: 'Gemini API key is not configured on the server. Please ensure GEMINI_API_KEY is available.',
+        })
+      );
+      clientWs.close(1008, 'API Key Missing');
+    }
     return;
   }
 
+  let session: any = null;
+  let isClosing = false;
+  const messageQueue: any[] = [];
+
+  const dispatchToGemini = (parsed: any) => {
+    if (!session) return;
+    try {
+      if (parsed.audio) {
+        session.sendRealtimeInput({
+          audio: { data: parsed.audio, mimeType: 'audio/pcm;rate=16000' },
+        });
+      }
+      if (parsed.text) {
+        session.sendClientContent({
+          turns: [
+            {
+              role: 'user',
+              parts: [{ text: parsed.text }],
+            },
+          ],
+          turnComplete: true,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Error sending to Gemini Live session:', err.message || err);
+    }
+  };
+
+  clientWs.on('message', (data) => {
+    try {
+      const parsed = JSON.parse(data.toString());
+      if (!session) {
+        // Buffer up to 30 early packets while handshaking
+        if (messageQueue.length < 30) {
+          messageQueue.push(parsed);
+        }
+        return;
+      }
+      dispatchToGemini(parsed);
+    } catch (err: any) {
+      console.error('Error handling client message:', err.message || err);
+    }
+  });
+
+  clientWs.on('close', () => {
+    console.log('Client disconnected from Live Voice API');
+    isClosing = true;
+    if (session) {
+      try {
+        session.close();
+      } catch (e) {}
+      session = null;
+    }
+  });
+
   try {
-    const session = await ai.live.connect({
+    session = await ai.live.connect({
       model: 'gemini-3.8-live',
       config: {
         responseModalities: [Modality.AUDIO],
@@ -61,52 +136,48 @@ wss.on('connection', async (clientWs: WebSocket) => {
       },
       callbacks: {
         onmessage: (message: LiveServerMessage) => {
-          const audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-          const text = message.serverContent?.modelTurn?.parts?.[0]?.text;
-          if (audio) {
-            if (clientWs.readyState === WebSocket.OPEN) {
-              clientWs.send(JSON.stringify({ audio }));
+          if (clientWs.readyState !== WebSocket.OPEN) return;
+          const parts = message.serverContent?.modelTurn?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData?.data) {
+              clientWs.send(JSON.stringify({ audio: part.inlineData.data }));
             }
-          }
-          if (text) {
-            if (clientWs.readyState === WebSocket.OPEN) {
-              clientWs.send(JSON.stringify({ text }));
+            if (part.text) {
+              clientWs.send(JSON.stringify({ text: part.text }));
             }
           }
           if (message.serverContent?.interrupted) {
-            if (clientWs.readyState === WebSocket.OPEN) {
-              clientWs.send(JSON.stringify({ interrupted: true }));
-            }
+            clientWs.send(JSON.stringify({ interrupted: true }));
+          }
+        },
+        onerror: (err: any) => {
+          console.warn('Gemini Live session error in callback:', err.message || err);
+          if (clientWs.readyState === WebSocket.OPEN && !isClosing) {
+            clientWs.send(JSON.stringify({ error: err.message || 'Live API session error' }));
+          }
+        },
+        onclose: () => {
+          console.log('Gemini Live session closed by server');
+          if (clientWs.readyState === WebSocket.OPEN && !isClosing) {
+            clientWs.send(JSON.stringify({ closed: true }));
           }
         },
       },
     });
 
-    clientWs.on('message', (data) => {
-      try {
-        const parsed = JSON.parse(data.toString());
-        if (parsed.audio) {
-          session.sendRealtimeInput({
-            audio: { data: parsed.audio, mimeType: 'audio/pcm;rate=16000' },
-          });
-        }
-        if (parsed.text) {
-          session.sendRealtimeInput({
-            text: parsed.text,
-          });
-        }
-      } catch (err: any) {
-        console.error('Error handling client message:', err.message || err);
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(JSON.stringify({ ready: true }));
+      // Flush buffered messages
+      while (messageQueue.length > 0) {
+        const item = messageQueue.shift();
+        dispatchToGemini(item);
       }
-    });
-
-    clientWs.on('close', () => {
-      console.log('Client disconnected from Live Voice API');
-    });
+    }
   } catch (err: any) {
     console.error('Live connect error:', err);
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(JSON.stringify({ error: err.message || 'Failed to connect to Live session' }));
+      clientWs.close(1011, 'Session Connection Failed');
     }
   }
 });

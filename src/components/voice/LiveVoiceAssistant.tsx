@@ -60,6 +60,8 @@ export const LiveVoiceAssistant: React.FC = () => {
     return btoa(binary);
   };
 
+  const [textInput, setTextInput] = useState('');
+
   const playAudioChunk = (base64Data: string) => {
     try {
       if (!outputAudioCtxRef.current) {
@@ -72,17 +74,21 @@ export const LiveVoiceAssistant: React.FC = () => {
         ctx.resume();
       }
 
-      // Base64 decode raw 24kHz 16-bit PCM little endian
+      // Base64 decode raw 24kHz 16-bit PCM little-endian safely via DataView
       const binaryString = atob(base64Data);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      const int16 = new Int16Array(bytes.buffer);
-      const float32 = new Float32Array(int16.length);
-      for (let i = 0; i < int16.length; i++) {
-        float32[i] = int16[i] / 32768.0;
+      const numSamples = Math.floor(bytes.length / 2);
+      if (numSamples === 0) return;
+
+      const dataView = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const float32 = new Float32Array(numSamples);
+      for (let i = 0; i < numSamples; i++) {
+        const intVal = dataView.getInt16(i * 2, true);
+        float32[i] = intVal / 32768.0;
       }
 
       const buffer = ctx.createBuffer(1, float32.length, 24000);
@@ -126,57 +132,72 @@ export const LiveVoiceAssistant: React.FC = () => {
 
   const startSession = async () => {
     setErrorMsg(null);
+
+    // 1. First, acquire microphone stream before connecting WebSocket
+    let stream: MediaStream | null = null;
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
+        });
+        mediaStreamRef.current = stream;
+      }
+    } catch (micErr: any) {
+      console.warn('Microphone unavailable or denied:', micErr.message);
+      setErrorMsg(
+        'Microphone permission was denied or is unavailable: ' +
+          (micErr.message || 'Please check browser/iframe permissions.') +
+          ' You can still connect and communicate by typing below.'
+      );
+    }
+
+    // 2. Connect to the WebSocket endpoint
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/live`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
-      ws.onopen = async () => {
+      ws.onopen = () => {
         setIsConnected(true);
 
-        try {
-          // Mic capture at 16kHz
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              channelCount: 1,
+        // If microphone stream is available, wire up audio recording pipeline
+        if (stream) {
+          try {
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({
               sampleRate: 16000,
-              echoCancellation: true,
-              noiseSuppression: true,
-            },
-          });
-          mediaStreamRef.current = stream;
+            });
+            inputAudioCtxRef.current = audioCtx;
 
-          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({
-            sampleRate: 16000,
-          });
-          inputAudioCtxRef.current = audioCtx;
+            const source = audioCtx.createMediaStreamSource(stream);
+            const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+            scriptProcessorRef.current = processor;
 
-          const source = audioCtx.createMediaStreamSource(stream);
-          const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-          scriptProcessorRef.current = processor;
+            source.connect(processor);
+            processor.connect(audioCtx.destination);
 
-          source.connect(processor);
-          processor.connect(audioCtx.destination);
+            processor.onaudioprocess = (e) => {
+              if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                const channelData = e.inputBuffer.getChannelData(0);
+                let sum = 0;
+                for (let i = 0; i < channelData.length; i++) {
+                  sum += channelData[i] * channelData[i];
+                }
+                const rms = Math.sqrt(sum / channelData.length);
+                setIsTalking(rms > 0.02);
 
-          processor.onaudioprocess = (e) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              const channelData = e.inputBuffer.getChannelData(0);
-              // check volume to update talking indicator
-              let sum = 0;
-              for (let i = 0; i < channelData.length; i++) {
-                sum += channelData[i] * channelData[i];
+                const base64Audio = pcmToBase64(channelData);
+                wsRef.current.send(JSON.stringify({ audio: base64Audio }));
               }
-              const rms = Math.sqrt(sum / channelData.length);
-              setIsTalking(rms > 0.02);
-
-              const base64Audio = pcmToBase64(channelData);
-              ws.send(JSON.stringify({ audio: base64Audio }));
-            }
-          };
-        } catch (micErr: any) {
-          setErrorMsg('Microphone access denied or unavailable: ' + micErr.message);
-          stopSession();
+            };
+          } catch (audioPipelineErr: any) {
+            console.warn('Audio capture pipeline setup failed:', audioPipelineErr);
+          }
         }
       };
 
@@ -185,6 +206,9 @@ export const LiveVoiceAssistant: React.FC = () => {
           const msg = JSON.parse(event.data);
           if (msg.error) {
             setErrorMsg(msg.error);
+          }
+          if (msg.ready) {
+            setErrorMsg(null);
           }
           if (msg.audio) {
             playAudioChunk(msg.audio);
@@ -203,13 +227,15 @@ export const LiveVoiceAssistant: React.FC = () => {
             ]);
           }
         } catch (e) {
-          console.error(e);
+          console.error('Error parsing WebSocket message:', e);
         }
       };
 
       ws.onerror = (e) => {
-        console.error('WebSocket error:', e);
-        setErrorMsg('WebSocket connection encountered an error.');
+        console.warn('WebSocket encountered an error:', e);
+        if (wsRef.current) {
+          setErrorMsg('Live WebSocket connection encountered an error. Please try reconnecting.');
+        }
       };
 
       ws.onclose = () => {
@@ -221,6 +247,23 @@ export const LiveVoiceAssistant: React.FC = () => {
       setErrorMsg(err.message || 'Failed to start Live session');
       stopSession();
     }
+  };
+
+  const handleSendText = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!textInput.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+    const text = textInput.trim();
+    wsRef.current.send(JSON.stringify({ text }));
+    setTranscriptHistory((prev) => [
+      ...prev,
+      {
+        sender: 'user',
+        text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
+    setTextInput('');
   };
 
   const stopSession = () => {
@@ -397,6 +440,51 @@ export const LiveVoiceAssistant: React.FC = () => {
               </div>
               <p className="leading-relaxed">{item.text}</p>
             </div>
+          ))}
+        </div>
+
+        {/* Input Bar for Text Prompts over WebSocket */}
+        <form onSubmit={handleSendText} className="pt-2 border-t border-slate-800 flex gap-2">
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            disabled={!isConnected}
+            placeholder={
+              isConnected
+                ? "Type a question or viva defense prompt to Thought Titan..."
+                : "Click 'Start Live Conversation' above to connect..."
+            }
+            className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={!isConnected || !textInput.trim()}
+            className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <span>Send</span>
+          </button>
+        </form>
+
+        {/* Quick viva conversation starters */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-[11px] text-slate-500">Quick Viva Prompts:</span>
+          {[
+            "Test my understanding of dynamic programming vs greedy approach",
+            "Ask me 3 tough viva questions on my mini project architecture",
+            "How should I explain time complexity of Dijkstra's algorithm to the examiner?",
+          ].map((promptText) => (
+            <button
+              key={promptText}
+              type="button"
+              disabled={!isConnected}
+              onClick={() => {
+                setTextInput(promptText);
+              }}
+              className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/40 transition-colors disabled:opacity-40 cursor-pointer"
+            >
+              {promptText}
+            </button>
           ))}
         </div>
       </div>
