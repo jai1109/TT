@@ -378,6 +378,20 @@ Respond strictly in valid JSON format matching this schema:
   "conclusion": "Summary of project achievements and future scope"
 }`;
 
+    case 'voice_assistant':
+      return `You are Thought Titan, an articulate, world-class academic and engineering research copilot for Institute of Aeronautical Engineering (IARE).
+${studentContext}
+You are speaking directly to a student in a spoken voice conversation for seminar defense, viva preparation, or engineering concept explanation.
+Guidelines:
+1. Provide a direct, articulate, conversational spoken answer (2-4 clear sentences) explaining the concept clearly.
+2. Formatted for spoken audio synthesis (no markdown formatting, no code blocks, no asterisks, no bullet points).
+3. Return strictly JSON:
+{
+  "reply": "Clear, articulate spoken answer suitable for audio synthesis",
+  "topic": "Core topic name",
+  "followUpVivaQuestion": "A sharp, thought-provoking viva question for the student"
+}`;
+
     default:
       return `You are Thought Titan, a premier academic assistant. Return a helpful, structured JSON response.`;
   }
@@ -935,6 +949,14 @@ int main() {
           explanation: 'Duplicates of 10 and 20 are omitted while preserving first occurrence order.',
         },
       ],
+    };
+  }
+
+  if (type === 'voice_assistant') {
+    return {
+      reply: `Regarding ${prompt}: In engineering and academic research, this balances algorithmic efficiency, resource constraints, and fault tolerance. When presenting this in a seminar or viva, emphasize the computational tradeoffs, boundary conditions, and real-world system architecture.`,
+      topic: prompt,
+      followUpVivaQuestion: `How would you handle concurrency contention or edge-case boundary failures for ${prompt}?`,
     };
   }
 
