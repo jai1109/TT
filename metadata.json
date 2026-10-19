@@ -1,0 +1,6 @@
+{
+  "name": "Thought Titan",
+  "description": "Thought Titan - All-in-one AI Academic & Research Power Suite: PPT Generator (up to 18 slides), Live Voice Conversations, Image Studio, Lab Records, Assignments, and Engineering Calculators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
