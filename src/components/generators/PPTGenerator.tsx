@@ -126,6 +126,7 @@ export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData
   const [slideCount, setSlideCount] = useState(7);
   const [targetType, setTargetType] = useState('Technical Seminar / Tech Talk');
   const [loading, setLoading] = useState(false);
+  const [lectureNumber, setLectureNumber] = useState();
   const [pptData, setPptData] = useState<PPTData | null>(initialData || null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [showSpeakerNotes, setShowSpeakerNotes] = useState(true);
