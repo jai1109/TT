@@ -122,10 +122,9 @@ export const IARECollegeLogo = ({
 
 export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData }) => {
   const [topic, setTopic] = useState('');
-  const [courseTitle, setCourseTitle] = useState('Computer Science & Engineering Specialization');
+  const [courseTitle, setCourseTitle] = useState();
   const [slideCount, setSlideCount] = useState(7);
   const [targetType, setTargetType] = useState('Technical Seminar / Tech Talk');
-  const [lectureNumber, setLectureNumber] = useState('Seminar Review 01');
   const [loading, setLoading] = useState(false);
   const [pptData, setPptData] = useState<PPTData | null>(initialData || null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
