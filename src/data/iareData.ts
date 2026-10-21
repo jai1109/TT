@@ -168,11 +168,18 @@ export const PROJECT_DOC_PRESETS = [
 
 export const IARE_PORTAL_LINKS = [
   {
+    name: 'IARE Samvidha Portal',
+    url: 'https://samvidha.iare.ac.in',
+    desc: 'Official College ERP: CIE Marks, Biometric Attendance, Course Syllabus, Hall Ticket, Fee Dues & Mentoring',
+    category: 'Portals',
+    badge: 'Official Samvidha',
+  },
+  {
     name: 'IARE AUMS Portal',
     url: 'https://iare-aums.com',
     desc: 'Academic ERP, Marks, Course Registration & Grade Cards',
     category: 'Portals',
-    badge: 'Primary ERP',
+    badge: 'AUMS ERP',
   },
   {
     name: 'Akanksha Student Information',

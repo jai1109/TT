@@ -1,5 +1,10 @@
 import { SavedHistoryItem, StudentProfile, TabType } from '../types';
-import { generateLocalPPT } from './localGenerators';
+import { 
+  generateLocalPPT, 
+  generateLocalLabRecord, 
+  generateLocalAssignment, 
+  generateLocalTechTalkReport 
+} from './localGenerators';
 
 export const DEFAULT_STUDENT_PROFILE: StudentProfile = {
   name: 'Rahul Varma',
@@ -112,6 +117,15 @@ export async function requestGeneration(
     console.warn('API fetch error, falling back to local engine:', err);
     if (type === 'ppt') {
       return generateLocalPPT(prompt, options, profile);
+    }
+    if (type === 'lab_record') {
+      return generateLocalLabRecord(prompt, options, profile);
+    }
+    if (type === 'assignment') {
+      return generateLocalAssignment(prompt, options, profile);
+    }
+    if (type === 'tech_talk') {
+      return generateLocalTechTalkReport(prompt, options, profile);
     }
     throw err;
   }

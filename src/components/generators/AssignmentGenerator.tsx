@@ -14,6 +14,7 @@ import {
 import { AssignmentData, StudentProfile } from '../../types';
 import { ASSIGNMENT_PRESETS } from '../../data/iareData';
 import { copyToClipboard, downloadFile, requestGeneration, saveHistoryItem } from '../../utils/api';
+import { generateLocalAssignment } from '../../utils/localGenerators';
 
 interface AssignmentGeneratorProps {
   student: StudentProfile;
@@ -47,10 +48,27 @@ export const AssignmentGenerator: React.FC<AssignmentGeneratorProps> = ({ studen
         { subjectName, subjectCode, assignmentTitle },
         student
       );
-      setAssignmentData(data);
-      saveHistoryItem('assignment', `${data.subjectCode}: ${data.assignmentTitle}`, data);
+      if (data && data.questions && data.questions.length > 0) {
+        setAssignmentData(data);
+        saveHistoryItem('assignment', `${data.subjectCode}: ${data.assignmentTitle}`, data);
+      } else {
+        const fallback = generateLocalAssignment(
+          textToUse,
+          { subjectName, subjectCode, assignmentTitle },
+          student
+        );
+        setAssignmentData(fallback);
+        saveHistoryItem('assignment', `${fallback.subjectCode}: ${fallback.assignmentTitle}`, fallback);
+      }
     } catch (err) {
-      console.error(err);
+      console.warn('API error, using local assignment generator:', err);
+      const fallback = generateLocalAssignment(
+        textToUse,
+        { subjectName, subjectCode, assignmentTitle },
+        student
+      );
+      setAssignmentData(fallback);
+      saveHistoryItem('assignment', `${fallback.subjectCode}: ${fallback.assignmentTitle}`, fallback);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Presentation, 
   FileCode, 
@@ -16,7 +16,10 @@ import {
   ShieldCheck,
   GraduationCap,
   Radio,
-  Wand2
+  Wand2,
+  ChevronLeft,
+  ChevronRight,
+  Building
 } from 'lucide-react';
 
 import { SavedHistoryItem, StudentProfile, TabType } from './types';
@@ -34,6 +37,7 @@ import { HistoryDrawer } from './components/HistoryDrawer';
 
 // Generators & Multimodal Tools
 import { PPTGenerator } from './components/generators/PPTGenerator';
+import { TechTalkReportGenerator } from './components/generators/TechTalkReportGenerator';
 import { LiveVoiceAssistant } from './components/voice/LiveVoiceAssistant';
 import { ImageStudio } from './components/image/ImageStudio';
 import { LabRecordGenerator } from './components/generators/LabRecordGenerator';
@@ -42,7 +46,8 @@ import { CaseStudyGenerator } from './components/generators/CaseStudyGenerator';
 import { CodeSolver } from './components/generators/CodeSolver';
 import { ProjectDocGenerator } from './components/generators/ProjectDocGenerator';
 
-// Academic Tools
+// Academic Tools & Samvidha ERP
+import { SamvidhaPortalSuite } from './components/tools/SamvidhaPortalSuite';
 import { CgpaCalculator } from './components/tools/CgpaCalculator';
 import { AttendancePlanner } from './components/tools/AttendancePlanner';
 import { QuestionBankView } from './components/tools/QuestionBankView';
@@ -55,6 +60,51 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<SavedHistoryItem[]>([]);
   const [restoredData, setRestoredData] = useState<{ type: TabType; data: any } | null>(null);
+
+  const tabScrollRef = useRef<HTMLDivElement>(null);
+  const isMouseDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!tabScrollRef.current) return;
+    isMouseDownRef.current = true;
+    hasDraggedRef.current = false;
+    startXRef.current = e.pageX - tabScrollRef.current.offsetLeft;
+    scrollLeftRef.current = tabScrollRef.current.scrollLeft;
+  };
+
+  const handleMouseLeave = () => {
+    isMouseDownRef.current = false;
+  };
+
+  const handleMouseUp = () => {
+    isMouseDownRef.current = false;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDownRef.current || !tabScrollRef.current) return;
+    const x = e.pageX - tabScrollRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    if (Math.abs(walk) > 4) {
+      hasDraggedRef.current = true;
+    }
+    tabScrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!tabScrollRef.current) return;
+    if (e.deltaY !== 0) {
+      tabScrollRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (!tabScrollRef.current) return;
+    const amount = direction === 'left' ? -260 : 260;
+    tabScrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     setHistoryItems(loadHistory());
@@ -82,12 +132,14 @@ export default function App() {
 
   const tabs = [
     { id: 'ppt' as TabType, label: 'PPT Generator', icon: Presentation, badge: '18 Slides' },
+    { id: 'lab_record' as TabType, label: 'Lab Record', icon: FileCode, badge: 'Observation & Code' },
+    { id: 'assignment' as TabType, label: 'Assignment', icon: FileText, badge: 'Blooms L1-L6' },
+    { id: 'tech_talk' as TabType, label: 'Tech Talk Report', icon: BookOpen, badge: 'Seminar' },
+    { id: 'samvidha' as TabType, label: 'Samvidha Portal Suite', icon: Building, badge: 'CIE & ERP' },
+    { id: 'code_solver' as TabType, label: 'BuildIT Solver', icon: Terminal, badge: 'PAT' },
     { id: 'live_voice' as TabType, label: 'Live Voice AI', icon: Radio, badge: 'Gemini 3.8' },
     { id: 'image_studio' as TabType, label: 'Visual Studio', icon: Wand2, badge: 'Vector Art' },
-    { id: 'lab_record' as TabType, label: 'Lab Record', icon: FileCode, badge: 'Manual' },
-    { id: 'assignment' as TabType, label: 'Assignment', icon: FileText, badge: 'Blooms' },
     { id: 'case_study' as TabType, label: 'Case Study', icon: BookOpen, badge: 'Analysis' },
-    { id: 'code_solver' as TabType, label: 'BuildIT Solver', icon: Terminal, badge: 'PAT' },
     { id: 'project_doc' as TabType, label: 'Project SRS', icon: FolderGit2, badge: 'Mini/Major' },
     { id: 'cgpa_calc' as TabType, label: 'SGPA/CGPA', icon: Calculator, badge: 'R22' },
     { id: 'attendance' as TabType, label: 'Attendance', icon: Calendar, badge: '75%' },
@@ -151,7 +203,35 @@ export default function App() {
           </div>
 
           {/* Tab Navigation Scrollable Bar */}
-          <div className="mt-5 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div
+            ref={tabScrollRef}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={handleMouseMove}
+            className="mt-5 flex items-center gap-2 overflow-x-auto pb-2 pt-1 scroll-smooth select-none cursor-grab active:cursor-grabbing border border-slate-800/80 bg-slate-950/60 p-2 rounded-2xl shadow-inner overscroll-x-contain"
+            style={{
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-x',
+            }}
+          >
+            {/* Scroll Left Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollTabs('left');
+              }}
+              className="sticky left-0 z-20 flex items-center justify-center p-2 rounded-xl bg-slate-900/95 hover:bg-slate-800 text-cyan-400 hover:text-white border border-slate-700/80 shadow-lg backdrop-blur-md cursor-pointer flex-shrink-0 transition-colors"
+              title="Scroll Tabs Left"
+              aria-label="Scroll Tabs Left"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -159,10 +239,14 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => {
+                    if (hasDraggedRef.current) {
+                      hasDraggedRef.current = false;
+                      return;
+                    }
                     setActiveTab(tab.id);
                     setRestoredData(null);
                   }}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex-shrink-0 ${
                     isActive
                       ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-violet-500/20 text-white border border-cyan-500/50 shadow-lg shadow-cyan-500/10'
                       : 'bg-slate-900/60 hover:bg-slate-850 text-slate-400 hover:text-slate-200 border border-slate-800/80'
@@ -186,6 +270,19 @@ export default function App() {
                 </button>
               );
             })}
+
+            {/* Scroll Right Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollTabs('right');
+              }}
+              className="sticky right-0 z-20 flex items-center justify-center p-2 rounded-xl bg-slate-900/95 hover:bg-slate-800 text-cyan-400 hover:text-white border border-slate-700/80 shadow-lg backdrop-blur-md cursor-pointer flex-shrink-0 transition-colors"
+              title="Scroll Tabs Right"
+              aria-label="Scroll Tabs Right"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -198,6 +295,13 @@ export default function App() {
             initialData={restoredData?.type === 'ppt' ? restoredData.data : null}
           />
         )}
+        {activeTab === 'tech_talk' && (
+          <TechTalkReportGenerator
+            student={student}
+            initialData={restoredData?.type === 'tech_talk' ? restoredData.data : null}
+          />
+        )}
+        {activeTab === 'samvidha' && <SamvidhaPortalSuite student={student} />}
         {activeTab === 'live_voice' && <LiveVoiceAssistant />}
         {activeTab === 'image_studio' && <ImageStudio />}
         {activeTab === 'lab_record' && (

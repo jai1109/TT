@@ -9,10 +9,12 @@ export interface StudentProfile {
 
 export type TabType =
   | 'ppt'
-  | 'live_voice'
-  | 'image_studio'
+  | 'tech_talk'
   | 'lab_record'
   | 'assignment'
+  | 'samvidha'
+  | 'live_voice'
+  | 'image_studio'
   | 'case_study'
   | 'code_solver'
   | 'project_doc'
@@ -129,4 +131,36 @@ export interface SavedHistoryItem {
   title: string;
   timestamp: string;
   data: any;
+}
+
+export interface TechTalkMetric {
+  metric: string;
+  existingBaseline: string;
+  proposedSystem: string;
+  improvement: string;
+}
+
+export interface TechTalkChapter {
+  chapterNumber: number;
+  title: string;
+  content: string[];
+  visualDescription?: string;
+  keyTakeaways?: string[];
+}
+
+export interface TechTalkReportData {
+  title: string;
+  subtitle: string;
+  domain: string;
+  courseTitle: string;
+  presenter: string;
+  rollNo: string;
+  branch: string;
+  academicYear: string;
+  abstract: string;
+  keywords: string[];
+  chapters: TechTalkChapter[];
+  comparativeMetrics: TechTalkMetric[];
+  vivaQuestions: VivaQuestion[];
+  references: string[];
 }

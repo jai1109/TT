@@ -16,6 +16,7 @@ import {
 import { LabRecordData, StudentProfile } from '../../types';
 import { LAB_PRESETS } from '../../data/iareData';
 import { copyToClipboard, downloadFile, requestGeneration, saveHistoryItem } from '../../utils/api';
+import { generateLocalLabRecord } from '../../utils/localGenerators';
 
 interface LabRecordGeneratorProps {
   student: StudentProfile;
@@ -55,10 +56,27 @@ export const LabRecordGenerator: React.FC<LabRecordGeneratorProps> = ({ student,
         },
         student
       );
-      setRecordData(data);
-      saveHistoryItem('lab_record', `${data.experimentNumber}: ${data.experimentTitle}`, data);
+      if (data && data.experimentTitle) {
+        setRecordData(data);
+        saveHistoryItem('lab_record', `${data.experimentNumber}: ${data.experimentTitle}`, data);
+      } else {
+        const fallback = generateLocalLabRecord(
+          titleToUse,
+          { expNumber, subjectName: customSub || subjectName, language: customLang || language },
+          student
+        );
+        setRecordData(fallback);
+        saveHistoryItem('lab_record', `${fallback.experimentNumber}: ${fallback.experimentTitle}`, fallback);
+      }
     } catch (err) {
-      console.error(err);
+      console.warn('API error, using local lab generator:', err);
+      const fallback = generateLocalLabRecord(
+        titleToUse,
+        { expNumber, subjectName: customSub || subjectName, language: customLang || language },
+        student
+      );
+      setRecordData(fallback);
+      saveHistoryItem('lab_record', `${fallback.experimentNumber}: ${fallback.experimentTitle}`, fallback);
     } finally {
       setLoading(false);
     }

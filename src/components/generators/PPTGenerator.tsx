@@ -25,6 +25,7 @@ import { PPTData, SlideItem, StudentProfile } from '../../types';
 import { PPT_PRESETS } from '../../data/iareData';
 import { copyToClipboard, downloadFile, requestGeneration, saveHistoryItem } from '../../utils/api';
 import { generateLocalPPT } from '../../utils/localGenerators';
+import { IARE_LOGO_DATA_URL } from '../../assets/iareLogo';
 
 interface PPTGeneratorProps {
   student: StudentProfile;
@@ -39,94 +40,15 @@ export const IARECollegeLogo = ({
   variant?: 'white' | 'navy';
   className?: string;
 }) => {
-  const isWhite = variant === 'white';
-  const textColor = isWhite ? '#ffffff' : '#003e7e';
-  const subTextColor = isWhite ? '#e2e8f0' : '#1e3a8a';
-
   return (
     <div className={`flex items-center gap-3 select-none ${className}`}>
-      {/* Official IARE Shield Crest */}
-      <svg
-        viewBox="0 0 80 85"
-        className="w-12 h-14 sm:w-14 sm:h-16 flex-shrink-0"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Shield shape */}
-        <path
-          d="M6 10 C 26 4, 54 4, 74 10 C 74 46, 56 70, 40 82 C 24 70, 6 46, 6 10 Z"
-          fill={isWhite ? '#ffffff' : '#003e7e'}
+      {/* Official IARE Logo uploaded by user */}
+      <div className="bg-white px-3 py-1.5 rounded-xl shadow-md flex items-center justify-center flex-shrink-0 border border-slate-100">
+        <img
+          src={IARE_LOGO_DATA_URL}
+          alt="Institute of Aeronautical Engineering Logo"
+          className="h-12 sm:h-16 w-auto max-w-[280px] sm:max-w-[400px] object-contain"
         />
-        {/* Inner shield inset */}
-        <path
-          d="M9 13 C 27 8, 53 8, 71 13 C 71 44, 54 66, 40 78 C 26 66, 9 44, 9 13 Z"
-          fill="#004385"
-        />
-        {/* Upper Sunburst Area */}
-        <path
-          d="M12 15 C 28 11, 52 11, 68 15 L 68 44 C 52 44, 28 44, 12 44 Z"
-          fill="#fef08a"
-        />
-        {/* Sun rays radiating */}
-        <g stroke="#ca8a04" strokeWidth="1.5">
-          <line x1="40" y1="44" x2="40" y2="20" />
-          <line x1="40" y1="44" x2="25" y2="24" />
-          <line x1="40" y1="44" x2="55" y2="24" />
-          <line x1="40" y1="44" x2="16" y2="34" />
-          <line x1="40" y1="44" x2="64" y2="34" />
-          <circle cx="40" cy="44" r="10" fill="#eab308" stroke="#ca8a04" />
-        </g>
-        {/* Lower Blue Bird / Lotus */}
-        <path
-          d="M12 44 C 28 44, 52 44, 68 44 C 68 62, 54 72, 40 76 C 26 72, 12 62, 12 44 Z"
-          fill="#002d5a"
-        />
-        <path
-          d="M40 50 C 33 54, 24 57, 20 60 C 28 62, 34 60, 40 68 C 46 60, 52 62, 60 60 C 56 57, 47 54, 40 50 Z"
-          fill="#ffffff"
-        />
-        <circle cx="40" cy="54" r="3" fill="#38bdf8" />
-        {/* Ribbon Text */}
-        <text
-          x="40"
-          y="73"
-          fontFamily="Arial, sans-serif"
-          fontSize="4"
-          fontWeight="bold"
-          fill="#fef08a"
-          textAnchor="middle"
-          letterSpacing="0.4"
-        >
-          EDUCATION FOR LIBERATION
-        </text>
-      </svg>
-
-      {/* Typography: IARE INSTITUTE OF AERONAUTICAL ENGINEERING */}
-      <div className="flex flex-col text-left leading-tight">
-        <span
-          className="font-black text-2xl sm:text-3xl tracking-tight"
-          style={{ color: textColor, fontFamily: 'Arial, sans-serif' }}
-        >
-          IARE
-        </span>
-        <span
-          className="font-extrabold text-[11px] sm:text-[13px] tracking-wider uppercase mt-[-2px]"
-          style={{ color: subTextColor, fontFamily: 'Arial, sans-serif' }}
-        >
-          INSTITUTE OF
-        </span>
-        <span
-          className="font-extrabold text-[11px] sm:text-[13px] tracking-wider uppercase"
-          style={{ color: subTextColor, fontFamily: 'Arial, sans-serif' }}
-        >
-          AERONAUTICAL ENGINEERING
-        </span>
-        <span
-          className="text-[9px] font-semibold tracking-normal mt-0.5 opacity-90"
-          style={{ color: subTextColor, fontFamily: 'Arial, sans-serif' }}
-        >
-          (Autonomous • Dundigal, Hyderabad)
-        </span>
       </div>
     </div>
   );
@@ -448,7 +370,10 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
         container.innerHTML = 
           '<div class="cover-top-banner">' +
             '<div style="display:flex; align-items:center; gap:16px;">' +
-              '<div style="font-size:30px; font-weight:900; line-height:1; letter-spacing:1px;">IARE<br><span style="font-size:12px; font-weight:700; letter-spacing:1px;">INSTITUTE OF<br>AERONAUTICAL ENGINEERING</span><br><span style="font-size:9px; font-weight:600; opacity:0.9;">(Autonomous • Hyderabad)</span></div>' +
+              '<div style="background:white; padding:4px 6px; border-radius:6px; display:flex; align-items:center; justify-content:center;">' +
+                '<img src="' + IARE_LOGO_DATA_URL + '" alt="IARE Logo" style="height:58px; object-fit:contain;" />' +
+              '</div>' +
+              '<div style="font-size:26px; font-weight:900; line-height:1.15; letter-spacing:1px;">IARE<br><span style="font-size:12px; font-weight:700; letter-spacing:1px;">INSTITUTE OF<br>AERONAUTICAL ENGINEERING</span><br><span style="font-size:9px; font-weight:600; opacity:0.9;">(Autonomous • Hyderabad)</span></div>' +
             '</div>' +
           '</div>' +
           '<div class="cover-bottom-body">' +
@@ -474,7 +399,10 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
             '<div>' +
               '<div class="content-header">' +
                 '<h2 class="content-slide-title">' + s.title + '</h2>' +
-                '<div style="text-align:right; font-weight:bold; font-size:13px; color:#003e7e;">IARE<br><span style="font-size:9px; font-weight:600; color:#64748b;">INSTITUTE OF AERONAUTICAL ENGINEERING<br>(Autonomous)</span></div>' +
+                '<div style="display:flex; align-items:center; gap:8px;">' +
+                  '<img src="' + IARE_LOGO_DATA_URL + '" alt="IARE Logo" style="height:32px; object-fit:contain;" />' +
+                  '<div style="text-align:right; font-weight:bold; font-size:13px; color:#003e7e;">IARE<br><span style="font-size:9px; font-weight:600; color:#64748b;">INSTITUTE OF AERONAUTICAL ENGINEERING<br>(Autonomous)</span></div>' +
+                '</div>' +
               '</div>' +
               '<ul class="content-bullets">' + bullets + '</ul>' +
               (s.visualIdea ? '<div class="visual-box"><strong>IARE Recommended Diagram:</strong> ' + s.visualIdea + '</div>' : '') +
@@ -940,10 +868,13 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
                           {currentSlide.title}
                         </h2>
                         <div className="flex items-center gap-2 text-right">
-                          <span className="text-sm font-black tracking-tight text-[#003e7e]">IARE</span>
-                          <span className="text-[10px] text-slate-600 font-semibold hidden sm:inline">
-                            INSTITUTE OF AERONAUTICAL ENGINEERING (Autonomous)
-                          </span>
+                          <div className="bg-white p-1 rounded-lg border border-slate-200 shadow-xs flex items-center justify-center">
+                            <img
+                              src={IARE_LOGO_DATA_URL}
+                              alt="IARE"
+                              className="h-8 sm:h-9 w-auto max-w-[140px] object-contain"
+                            />
+                          </div>
                         </div>
                       </div>
 

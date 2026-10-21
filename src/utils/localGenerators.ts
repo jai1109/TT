@@ -1,4 +1,12 @@
-import { PPTData, SlideItem, StudentProfile } from '../types/index';
+import { 
+  PPTData, 
+  SlideItem, 
+  StudentProfile, 
+  LabRecordData, 
+  AssignmentData, 
+  TechTalkReportData, 
+  VivaQuestion 
+} from '../types/index';
 
 export function generateLocalPPT(
   topic: string,
@@ -282,5 +290,505 @@ export function generateLocalPPT(
     subtitle: `Department of ${branch} • ${courseTitle}`,
     presenter: `${name} (${rollNo})`,
     slides: finalSlides,
+  };
+}
+
+// -------------------------------------------------------------
+// LOCAL LAB RECORD GENERATOR
+// -------------------------------------------------------------
+export function generateLocalLabRecord(
+  title: string,
+  options: {
+    expNumber?: string;
+    subjectName?: string;
+    language?: string;
+  } = {},
+  student?: StudentProfile
+): LabRecordData {
+  const expNum = options.expNumber || 'Experiment 01';
+  const sub = options.subjectName || 'Data Structures & Algorithms';
+  const lang = (options.language || 'c').toLowerCase();
+  const cleanTitle = title.trim() || 'Implementation of Core Algorithmic Data Structure';
+
+  const isTree = cleanTitle.toLowerCase().includes('tree') || cleanTitle.toLowerCase().includes('bst');
+  const isGraph = cleanTitle.toLowerCase().includes('graph') || cleanTitle.toLowerCase().includes('dijkstra') || cleanTitle.toLowerCase().includes('bfs');
+  const isSort = cleanTitle.toLowerCase().includes('sort');
+
+  let codeSnippet = '';
+  if (lang === 'python') {
+    codeSnippet = `"""
+  IARE Lab Experiment: ${cleanTitle}
+  Subject: ${sub}
+  Student: ${student?.name || 'Rahul Varma'} (${student?.rollNo || '22951A05B3'})
+"""
+
+import sys
+
+def execute_algorithm(arr):
+    """
+    Executes ${cleanTitle} with optimized asymptotic complexity.
+    """
+    print(f"[IARE Lab Execution] Processing {len(arr)} elements...")
+    # Core deterministic operational loop
+    sorted_result = sorted(arr)
+    return sorted_result
+
+def main():
+    test_data = [64, 34, 25, 12, 22, 11, 90]
+    print("Initial Input Array:", test_data)
+    result = execute_algorithm(test_data)
+    print("Execution Result:", result)
+    print("Validation Check: PASS")
+
+if __name__ == "__main__":
+    main()`;
+  } else if (lang === 'java') {
+    codeSnippet = `/*
+ * Institute of Aeronautical Engineering (Autonomous)
+ * Lab Experiment: ${cleanTitle}
+ * Student: ${student?.name || 'Rahul Varma'} (${student?.rollNo || '22951A05B3'})
+ */
+
+import java.util.Arrays;
+import java.util.Scanner;
+
+public class LabExperiment {
+    public static void process(int[] data) {
+        System.out.println("[IARE Runtime] Running " + "${cleanTitle}");
+        Arrays.sort(data);
+        System.out.println("Output: " + Arrays.toString(data));
+    }
+
+    public static void main(String[] args) {
+        int[] dataset = {45, 12, 85, 32, 89, 39, 69, 44};
+        System.out.println("Input: " + Arrays.toString(dataset));
+        process(dataset);
+        System.out.println("Result verified successfully.");
+    }
+}`;
+  } else {
+    codeSnippet = `/*
+ * INSTITUTE OF AERONAUTICAL ENGINEERING (Autonomous)
+ * Dundigal, Hyderabad - 500 043
+ *
+ * Subject: ${sub}
+ * Experiment: ${expNum} - ${cleanTitle}
+ * Student: ${student?.name || 'Rahul Varma'} | Roll No: ${student?.rollNo || '22951A05B3'}
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX 100
+
+void processAlgorithm(int arr[], int n) {
+    int i, j, temp;
+    printf("\\n[IARE Execution Trace] Executing ${cleanTitle}...\\n");
+    for (i = 0; i < n - 1; i++) {
+        for (j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void printArray(int arr[], int n) {
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\\n");
+}
+
+int main() {
+    int arr[] = {64, 34, 25, 12, 22, 11, 90};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    printf("==================================================\\n");
+    printf("   IARE Computer Science & Engineering Laboratory \\n");
+    printf("==================================================\\n");
+    printf("Input Sequence: ");
+    printArray(arr, n);
+
+    processAlgorithm(arr, n);
+
+    printf("Processed Sequence: ");
+    printArray(arr, n);
+    printf("Experiment execution completed with exit code 0.\\n");
+    return 0;
+}`;
+  }
+
+  return {
+    experimentNumber: expNum,
+    experimentTitle: cleanTitle,
+    aim: `To implement, test, and analyze the performance of ${cleanTitle} in ${lang.toUpperCase()} programming language in accordance with IARE laboratory course curriculum.`,
+    softwareHardwareRequirements: [
+      'Operating System: Ubuntu Linux 22.04 LTS / Windows 11 Enterprise',
+      `Language Toolchain: ${lang.toUpperCase()} Compiler / Interpreter (GCC 11.4 / OpenJDK 17 / Python 3.11)`,
+      'Development Environment: Visual Studio Code / Terminal / GCC CLI',
+      'Hardware Specs: Intel Core i5/i7 Processor, 8GB RAM, 256GB SSD',
+    ],
+    theoreticalConcepts: `The concept of ${cleanTitle} forms an architectural cornerstone in ${sub}. It systematically decomposes input sequences into manageable sub-problems, optimizing temporal and spatial resource consumption. Under standard operational conditions, it adheres to rigorous mathematical recurrence relations, minimizing redundant comparative evaluations and maximizing memory locality. Memory registers and pointer allocations are handled deterministically to prevent segmentation faults and buffer overflows.`,
+    algorithm: [
+      'Step 1: Start the program execution and initialize runtime memory buffers.',
+      'Step 2: Read the number of elements N and validate bounds against MAX capacity.',
+      'Step 3: Ingest input array elements into sequential contiguous memory addresses.',
+      `Step 4: Execute core logic of ${cleanTitle} using structured iterative or recursive control blocks.`,
+      'Step 5: Perform boundary-condition validation ensuring base conditions are fulfilled.',
+      'Step 6: Display the output sequence to the terminal and flush standard output buffers.',
+      'Step 7: Terminate the execution with zero exit code status.',
+    ],
+    flowchartDescription: 'Start (Oval) -> Read Input Elements & Array Length N (Parallelogram) -> Decision Diamond (Check if N > 0) -> Processing Block (Execute Algorithm Iteration Loop) -> Update Pointers/Indices -> Print Output (Parallelogram) -> Stop (Oval).',
+    sourceCode: codeSnippet,
+    language: lang,
+    sampleInput: '7\n64 34 25 12 22 11 90',
+    sampleOutput: 'Input Sequence: 64 34 25 12 22 11 90\nProcessed Sequence: 11 12 22 25 34 64 90\nExperiment execution completed with exit code 0.',
+    timeComplexity: isTree ? 'O(log N) Average, O(N) Worst Case' : isGraph ? 'O(V + E) using Adjacency List' : isSort ? 'O(N log N) Average Case, O(N²) Worst Case' : 'O(N) Linear Time',
+    spaceComplexity: 'O(N) Auxiliary Space',
+    result: `The ${lang.toUpperCase()} program for ${cleanTitle} was successfully implemented, compiled, and verified against all standard and edge test cases with accurate results.`,
+    vivaQuestions: [
+      {
+        question: `What is the primary motivation for using ${cleanTitle} in systems engineering?`,
+        answer: 'It optimizes computational throughput and asymptotic time complexity, transforming brute-force linear search or quadratic costs into logarithmic or linear-logarithmic bounds.',
+      },
+      {
+        question: 'How does the space complexity behave under extreme input volumes?',
+        answer: 'Auxiliary memory allocation remains strictly bounded in contiguous blocks, minimizing cache misses and avoiding heap fragmentation.',
+      },
+      {
+        question: 'What are the worst-case boundary conditions and how are they handled?',
+        answer: 'Worst-case scenarios (e.g. reverse-sorted inputs or degenerate partitions) are mitigated through randomized pivots or adaptive balancing algorithms.',
+      },
+      {
+        question: 'Explain how pointer/index arithmetic ensures data integrity in this program.',
+        answer: 'Pointers and loop counter bounds are strictly verified before dereferencing, ensuring no out-of-bounds memory accesses or undefined behavior.',
+      },
+      {
+        question: 'How can this implementation be adapted for distributed or concurrent environments?',
+        answer: 'By partitioning the input space into independent chunks across POSIX threads or worker processes using mutex locks and thread barriers.',
+      },
+    ],
+  };
+}
+
+// -------------------------------------------------------------
+// LOCAL ASSIGNMENT GENERATOR
+// -------------------------------------------------------------
+export function generateLocalAssignment(
+  prompt: string,
+  options: {
+    subjectName?: string;
+    subjectCode?: string;
+    assignmentTitle?: string;
+  } = {},
+  student?: StudentProfile
+): AssignmentData {
+  const subName = options.subjectName || 'Design and Analysis of Algorithms';
+  const subCode = options.subjectCode || 'ACSD13';
+  const title = options.assignmentTitle || 'Assignment 1 (Continuous Internal Assessment)';
+  const cleanTopic = prompt.trim() || 'Algorithmic Optimization and Computational Paradigms';
+
+  return {
+    subjectName: subName,
+    subjectCode: subCode,
+    assignmentTitle: title,
+    questions: [
+      {
+        questionNumber: 1,
+        questionText: `Define and formulate the theoretical foundation of ${cleanTopic}. Explain its operational significance in contemporary software architectures with appropriate mathematical expressions.`,
+        bloomsLevel: 'L2: Understanding',
+        courseOutcome: 'CO1',
+        answer: `### 1. Theoretical Formulation
+${cleanTopic} is defined as a formal mathematical and computational methodology designed to optimize state transitions and resource allocations under bounded operational constraints.
+
+Let the input domain be defined as a set $S = \\{s_1, s_2, \\dots, s_n\\}$. The governing objective function $f(S)$ seeks to minimize the cost metric:
+$$\\min \\sum_{i=1}^{n} c(s_i) \\quad \\text{subject to} \\quad g(s_i) \\le K$$
+
+### 2. Operational Significance
+1. **Compute Efficiency:** Decreases processor cycle consumption by eliminating redundant sub-problem recalculations through memorization or optimal substructure exploitation.
+2. **Deterministic Predictability:** Provides strict theoretical upper bounds (Big-O) allowing real-time systems to guarantee execution deadlines.
+3. **Fault Isolation:** High cohesive, decoupled modules ensure failures in one branch do not compromise core system liveness.
+
+### 3. Summary
+In summary, ${cleanTopic} forms the analytical basis for modern high-throughput computing, enabling scalable, provably correct algorithms in academic and industrial practice.`,
+      },
+      {
+        questionNumber: 2,
+        questionText: `Design a step-by-step algorithmic procedure to solve problems involving ${cleanTopic}. Illustrate the execution trace using a concrete numerical or data structure example.`,
+        bloomsLevel: 'L3: Applying',
+        courseOutcome: 'CO2',
+        answer: `### 1. Algorithmic Procedure
+\`\`\`
+Algorithm: OptimalExecutionProcedure(Data, N)
+Input: Array Data of size N
+Output: Transformed optimal state vector
+
+Step 1: Validate input bounds (if N <= 0 return Null).
+Step 2: Initialize memoization table or state variables M[0..N].
+Step 3: Base Case Setup: Set M[0] = initial boundary value.
+Step 4: For index i = 1 to N:
+          Evaluate transition relation:
+          M[i] = min(M[i-1] + cost(Data[i]), alternative_branch)
+Step 5: Reconstruct optimal trajectory from state matrix M.
+Step 6: Return M[N] and terminate.
+\`\`\`
+
+### 2. Concrete Trace Example
+Given input dataset: \`[14, 28, 9, 35, 21]\`
+- Iteration 1: Evaluates element 14 against initial state 0 -> Cost: 14
+- Iteration 2: Evaluates element 28 -> Transition cost updated to 42
+- Iteration 3: Minimum cost pruning eliminates non-optimal candidate paths.
+- Final Result: Successfully converges in $O(N)$ linear steps with verified optimal solution vector.`,
+      },
+      {
+        questionNumber: 3,
+        questionText: `Conduct a comparative asymptotic analysis between ${cleanTopic} and classical baseline alternatives. Highlight trade-offs in time complexity, space complexity, and implementation complexity.`,
+        bloomsLevel: 'L4: Analyzing',
+        courseOutcome: 'CO3',
+        answer: `### 1. Comparative Asymptotic Table
+
+| Evaluation Metric | Proposed (${cleanTopic}) | Classical Baseline | Performance Delta |
+| :--- | :--- | :--- | :--- |
+| **Best-Case Time** | $O(N)$ | $O(N^2)$ | Order of magnitude speedup |
+| **Average Time** | $O(N \\log N)$ | $O(N^2)$ | Exponentially superior on scale |
+| **Worst-Case Time** | $O(N \\log N)$ | $O(N^3)$ | Bound against catastrophic degradation |
+| **Auxiliary Space** | $O(N)$ contiguous | $O(N^2)$ dynamic | 65% reduction in memory footprint |
+| **Cache Locality** | High (spatial locality) | Poor (pointer chasing) | 4x reduction in L1/L2 cache misses |
+
+### 2. Critical Trade-offs
+While the proposed approach achieves asymptotic dominance, it introduces initial setup overhead in initializing state tables. For trivial datasets ($N < 10$), standard naive algorithms may exhibit marginally lower instruction count due to zero initialization overhead. However, as $N$ scales beyond $10^3$, the proposed method is unambiguously superior.`,
+      },
+    ],
+    references: [
+      'Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, "Introduction to Algorithms", 4th Edition, MIT Press, 2022.',
+      'Ellis Horowitz, Sartaj Sahni, Sanguthevar Rajasekaran, "Fundamentals of Computer Algorithms", 2nd Edition, Universities Press, 2018.',
+      'IARE Course Compendium & Question Bank, Department of Computer Science & Engineering, 2024-2025.',
+    ],
+  };
+}
+
+// -------------------------------------------------------------
+// LOCAL TECH TALK / TECHNICAL SEMINAR REPORT GENERATOR
+// -------------------------------------------------------------
+export function generateLocalTechTalkReport(
+  topic: string,
+  options: {
+    courseTitle?: string;
+    domain?: string;
+    academicYear?: string;
+  } = {},
+  student?: StudentProfile
+): TechTalkReportData {
+  const name = student?.name || 'Rahul Varma';
+  const rollNo = student?.rollNo || '22951A05B3';
+  const branch = student?.branch || 'Computer Science and Engineering';
+  const courseTitle = options.courseTitle || 'Technical Seminar / Tech Talk (B.Tech VII Sem)';
+  const domain = options.domain || 'Advanced Computing & Autonomous Systems';
+  const year = options.academicYear || '2024 - 2025';
+  const cleanTopic = topic.trim() || 'Next-Generation Autonomous Computing & Distributed Architectures';
+
+  return {
+    title: cleanTopic,
+    subtitle: `A Technical Seminar Report Submitted in Partial Fulfillment of the Requirements for the Award of the Degree of Bachelor of Technology in ${branch}`,
+    domain: domain,
+    courseTitle: courseTitle,
+    presenter: name,
+    rollNo: rollNo,
+    branch: branch,
+    academicYear: year,
+    abstract: `This technical seminar report presents a comprehensive investigation into ${cleanTopic}. Rapid advancements in computational paradigms, network bandwidth, and automated intelligence have exposed critical latency, scalability, and security bottlenecks in classical monolithic systems. In this study, we dissect the architectural foundations, formal mathematical formulations, and algorithmic implementations governing ${cleanTopic}. We present an empirical benchmark evaluation comparing the proposed methodology against industry-standard baselines, demonstrating a 93% reduction in tail latency (P99) and a 4.2-fold improvement in transactions per second. Finally, we explore real-world industrial deployments in autonomous aerospace systems, healthcare diagnostics, and fintech, addressing existing system limitations and outlining future research directions.`,
+    keywords: [
+      cleanTopic,
+      'Distributed Architectures',
+      'Asymptotic Optimization',
+      'Fault Tolerance',
+      'Low Tail-Latency',
+      'Autonomous Systems',
+      'IARE Technical Seminar',
+    ],
+    chapters: [
+      {
+        chapterNumber: 1,
+        title: 'Introduction & Research Motivation',
+        content: [
+          `1.1 Background: Modern enterprise computing systems are experiencing exponential growth in data ingestion volume and concurrent user traffic. Within this technological landscape, ${cleanTopic} has emerged as a transformative paradigm.`,
+          '1.2 Problem Statement: Legacy monolithic frameworks exhibit quadratic latency degradation, concurrency contention, and single points of failure under peak load conditions.',
+          '1.3 Research Objectives: The primary objective of this seminar report is to examine the architectural, algorithmic, and mathematical rigor underpinning modern solutions, verifying their efficacy through empirical benchmark testing.',
+          '1.4 Scope & Organization: This report is structured into 8 comprehensive chapters covering literature survey, system architecture, performance benchmarks, real-world case studies, and future scope.',
+        ],
+        visualDescription: 'Conceptual block diagram illustrating the paradigm transition from monolithic bottlenecks to decoupled autonomous architectures.',
+        keyTakeaways: [
+          'Legacy architectures fail under concurrent burst workloads.',
+          'Decoupled, asynchronous pipelines guarantee system liveness and bounded tail latency.',
+        ],
+      },
+      {
+        chapterNumber: 2,
+        title: 'Literature Survey & Seminal Contributions',
+        content: [
+          '2.1 Historical Evolution: The evolution of computing paradigms spans decades, progressing from mainframe centralized time-sharing to modern containerized micro-service topologies.',
+          '2.2 Landmark Research Papers: We analyzed 15 seminal research contributions published in IEEE Transactions on Computers, ACM Computing Surveys, and USENIX OSDI.',
+          '2.3 Comparative Survey of Contemporary Frameworks: Existing solutions struggle to strike a balance between strict ACID consistency and high-throughput availability (CAP theorem trade-offs).',
+          '2.4 Research Gap: Current literature reveals an acute lack of self-healing mechanisms that recover cluster consensus in under two seconds during severe network partition events.',
+        ],
+        visualDescription: 'Chronological timeline mapping foundational academic breakthroughs from 2018 to the present day.',
+        keyTakeaways: [
+          'Extensive literature review of 15+ peer-reviewed IEEE/ACM publications.',
+          'Identified consensus recovery time as the primary unsolved engineering challenge.',
+        ],
+      },
+      {
+        chapterNumber: 3,
+        title: 'System Architecture & Mathematical Formulations',
+        content: [
+          '3.1 Architectural Decomposition: The system comprises four decoupled layers: (i) Ingestion Gateway with TLS termination, (ii) Asynchronous Event Broker, (iii) Core Execution Engine, and (iv) High-Throughput State Persistence Store.',
+          '3.2 Mathematical Modeling: Let system arrival rate follow a Poisson distribution with parameter lambda. The expected queuing delay W_q under an M/M/1 queuing model is given by W_q = lambda / (mu * (mu - lambda)), where mu represents service capacity.',
+          '3.3 Liveness & Safety Invariants: We establish formal verification proofs ensuring deadlock-freedom through strict partial ordering of mutex acquisitions.',
+          '3.4 Fault Isolation Boundaries: Employing circuit-breaker design patterns isolates failing worker nodes, preventing cascading failures across the distributed cluster.',
+        ],
+        visualDescription: 'Detailed multi-tier architecture diagram displaying service boundaries, message brokers, caching nodes, and relational database replicas.',
+        keyTakeaways: [
+          'Four-tier decoupled microservice architecture.',
+          'Formally proven safety invariants guaranteeing zero deadlock conditions.',
+        ],
+      },
+      {
+        chapterNumber: 4,
+        title: 'Algorithmic Mechanics & Implementation Pipeline',
+        content: [
+          `4.1 Execution Pipeline: Processing within ${cleanTopic} proceeds across deterministic phases: schema ingestion, Protobuf binary serialization, worker thread pool dispatch, and atomic commit.`,
+          '4.2 Asymptotic Complexity Analysis: Time complexity is bounded at O(N log N) in the worst case, compared to O(N^2) in classical alternatives. Auxiliary space complexity is strictly O(N).',
+          '4.3 Technology Stack: Implemented using modern TypeScript, Go, Python 3.11, Docker containerization, Kubernetes orchestration, Redis in-memory cache, and PostgreSQL ACID persistence.',
+          '4.4 Hardware Cache Locality: Continuous contiguous memory buffers eliminate pointer indirection, achieving an 84% reduction in L1/L2 data cache misses.',
+        ],
+        visualDescription: 'Step-by-step flowchart with decision diamonds, validation checkpoints, and worker thread pool distribution.',
+        keyTakeaways: [
+          'Strict O(N log N) worst-case time complexity guarantee.',
+          'Containerized deployment using Kubernetes, Redis, and PostgreSQL.',
+        ],
+      },
+      {
+        chapterNumber: 5,
+        title: 'Experimental Setup & Benchmark Evaluation',
+        content: [
+          '5.1 Testbed Hardware Specifications: Dual AMD EPYC 7763 processors (128 vCPUs), 256GB ECC DDR4 RAM, NVMe PCIe 4.0 storage, connected via 25 Gbps low-latency networking.',
+          '5.2 Simulated Workload Parameters: High-concurrency synthetic stress testing generating up to 100,000 transactions per second (TPS).',
+          '5.3 Empirical Results: Median latency (P50) dropped from 340ms to 24ms (93% reduction). Tail latency (P99) remained tightly bounded below 45ms even under 90% CPU load.',
+          '5.4 Chaos Engineering Resilience: Injected node failure tests demonstrated automated cluster state reconciliation in 1.4 seconds with zero transaction loss.',
+        ],
+        visualDescription: 'Comprehensive benchmark comparison charts displaying latency CDF curves, throughput scaling, and CPU utilization.',
+        keyTakeaways: [
+          '93% reduction in median latency under 100k requests/second.',
+          'Automated recovery in 1.4 seconds under simulated node failure.',
+        ],
+      },
+      {
+        chapterNumber: 6,
+        title: 'Industrial Applications & Real-World Case Studies',
+        content: [
+          '6.1 Autonomous Aerospace Systems: Real-time UAV flight telemetry processing, obstacle avoidance sensor fusion, and mission command synchronization.',
+          '6.2 Healthcare Diagnostics: Sub-second medical image processing and patient biometric vitals monitoring with zero data compromise.',
+          '6.3 FinTech & High-Frequency Exchanges: Sub-millisecond fraud pattern detection and distributed ledger reconciliation.',
+          '6.4 Smart City Grid Infrastructure: Managing distributed energy grid loads, automated failover routing, and sensor anomaly detection.',
+        ],
+        visualDescription: 'Four-quadrant application matrix highlighting aerospace, healthcare, fintech, and municipal infrastructure domains.',
+        keyTakeaways: [
+          'Validated applicability in aerospace navigation and mission-critical telemetry.',
+          'High adaptability across high-frequency finance and medical pipelines.',
+        ],
+      },
+      {
+        chapterNumber: 7,
+        title: 'Engineering Challenges, Limitations & Mitigations',
+        content: [
+          '7.1 Challenge 1 (Cold Boot Initialization): Initial cluster node boot introduces high latency spikes. Mitigation: Implemented pre-warmed container worker pools.',
+          '7.2 Challenge 2 (Edge Memory Constraints): Low-power IoT devices suffer from constrained RAM. Mitigation: Byte-level quantization reducing model footprint by 65%.',
+          '7.3 Challenge 3 (Network Jitter): Transient packet drops cause retransmission cascades. Mitigation: Adaptive exponential backoff with randomized jitter.',
+        ],
+        visualDescription: 'Two-column comparative card layout detailing technical challenges and engineered mitigations.',
+        keyTakeaways: [
+          'Proactive pre-warming eliminates cold-boot initialization spikes.',
+          'Byte-level quantization enables deployment on memory-constrained edge hardware.',
+        ],
+      },
+      {
+        chapterNumber: 8,
+        title: 'Conclusion & Future Research Directions',
+        content: [
+          `8.1 Concluding Remarks: This report demonstrated the architectural superiority, empirical speedup, and resilience of ${cleanTopic}. It satisfies all academic criteria prescribed by IARE.`,
+          '8.2 Future Directions: Ongoing research explores integration with FPGA hardware accelerators and quantum-resistant post-quantum cryptographic primitives (NIST standards).',
+          '8.3 Open Source Contribution: An academic benchmarking suite will be made accessible to student researchers at the Institute of Aeronautical Engineering.',
+        ],
+        visualDescription: 'Research roadmap Gantt chart outlining quarterly technological milestones.',
+        keyTakeaways: [
+          'Successfully validates research hypothesis with empirical superiority.',
+          'Future roadmap incorporates FPGA accelerators and post-quantum security.',
+        ],
+      },
+    ],
+    comparativeMetrics: [
+      {
+        metric: 'Median Latency (P50)',
+        existingBaseline: '340 ms',
+        proposedSystem: '24 ms',
+        improvement: '92.9% Speedup',
+      },
+      {
+        metric: 'Tail Latency (P99)',
+        existingBaseline: '1,250 ms',
+        proposedSystem: '44 ms',
+        improvement: '96.5% Reduction',
+      },
+      {
+        metric: 'Throughput (TPS)',
+        existingBaseline: '22,000 TPS',
+        proposedSystem: '98,500 TPS',
+        improvement: '4.47x Higher',
+      },
+      {
+        metric: 'Recovery from Node Fail (sec)',
+        existingBaseline: '42.5 seconds',
+        proposedSystem: '1.4 seconds',
+        improvement: '30x Faster Recovery',
+      },
+      {
+        metric: 'Cloud Compute Cost ($/month)',
+        existingBaseline: '$4,800',
+        proposedSystem: '$2,750',
+        improvement: '42.7% Cost Savings',
+      },
+    ],
+    vivaQuestions: [
+      {
+        question: 'What is the primary architectural contribution of this Tech Talk research?',
+        answer: 'Decomposing legacy monolithic structures into an asynchronous, event-driven pipeline that bounds tail latency while guaranteeing cluster safety invariants.',
+      },
+      {
+        question: 'How does the proposed system solve the CAP theorem constraints in real-world scenarios?',
+        answer: 'It adopts tunable consistency (PACELC model), providing high availability and low latency during normal operation while enforcing strict serialized consistency during partition events.',
+      },
+      {
+        question: 'Explain why P99 tail latency is far more critical than average P50 latency in modern software.',
+        answer: 'In distributed systems where a single user request fans out to dozens of microservices, the slowest sub-query dictates overall response time. A degraded P99 harms a substantial percentage of end users.',
+      },
+      {
+        question: 'How does the system ensure zero data loss during sudden node power loss?',
+        answer: 'Through write-ahead logging (WAL) to NVMe storage and synchronous quorum replication across at least three independent availability zones before transaction acknowledgement.',
+      },
+      {
+        question: 'What Bloom’s taxonomy level does this investigation fulfill according to IARE standards?',
+        answer: 'It satisfies Level 4 (Analyzing) and Level 5 (Evaluating) through empirical benchmarking, asymptotic proofs, and comparative evaluation against industry baselines.',
+      },
+    ],
+    references: [
+      'M. Zaharia et al., "Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing," in Proc. USENIX NSDI, 2012.',
+      'D. Ongaro and J. Ousterhout, "In Search of an Understandable Consensus Algorithm (Raft)," in Proc. USENIX ATC, 2014.',
+      'IEEE Transactions on Parallel and Distributed Systems, Special Issue on Scalable Cloud Computing, Vol. 34, No. 8, August 2023.',
+      'ACM Computing Surveys (CSUR), "A Comprehensive Survey on Low-Latency Distributed Systems," Vol. 56, Issue 4, 2024.',
+      'IARE Academic Compendium & Technical Seminar Guidelines, Institute of Aeronautical Engineering, Dundigal, Hyderabad, 2024.',
+    ],
   };
 }

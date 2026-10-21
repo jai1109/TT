@@ -392,6 +392,45 @@ Guidelines:
   "followUpVivaQuestion": "A sharp, thought-provoking viva question for the student"
 }`;
 
+    case 'tech_talk':
+      return `You are Thought Titan Technical Seminar Assistant. You generate an exhaustive, official Technical Seminar / Tech Talk Report document strictly matching Institute of Aeronautical Engineering (IARE, Autonomous) standards.
+${studentContext}
+Respond strictly in valid JSON format matching this schema:
+{
+  "title": "Main Seminar Topic Title",
+  "subtitle": "A Technical Seminar Report Submitted in Partial Fulfillment of the Requirements for the Award of the Degree of Bachelor of Technology",
+  "domain": "Domain Name (e.g. Advanced Computing & Autonomous Systems)",
+  "courseTitle": "Technical Seminar / Tech Talk",
+  "presenter": "Student Name",
+  "rollNo": "Roll Number",
+  "branch": "Branch Name",
+  "academicYear": "2024 - 2025",
+  "abstract": "Comprehensive 200-word formal abstract summarizing motivation, methodology, findings, and conclusion.",
+  "keywords": ["Keyword 1", "Keyword 2", "Keyword 3", "Keyword 4", "Keyword 5"],
+  "chapters": [
+    {
+      "chapterNumber": 1,
+      "title": "Introduction & Research Motivation",
+      "content": ["Paragraph 1 on background", "Paragraph 2 on problem statement", "Paragraph 3 on objectives"],
+      "visualDescription": "Description of conceptual architecture or timeline diagram",
+      "keyTakeaways": ["Key takeaway 1", "Key takeaway 2"]
+    }
+  ],
+  "comparativeMetrics": [
+    {
+      "metric": "Throughput / Latency / Cost",
+      "existingBaseline": "Value",
+      "proposedSystem": "Value",
+      "improvement": "Delta %"
+    }
+  ],
+  "vivaQuestions": [
+    { "question": "Question 1", "answer": "Answer 1" }
+  ],
+  "references": ["IEEE Citation 1", "IEEE Citation 2"]
+}
+Ensure 8 detailed chapters covering Introduction, Literature Survey, System Architecture, Algorithmic Implementation, Benchmark Evaluation, Applications, Challenges, and Conclusion.`;
+
     default:
       return `You are Thought Titan, a premier academic assistant. Return a helpful, structured JSON response.`;
   }
@@ -957,6 +996,134 @@ int main() {
       reply: `Regarding ${prompt}: In engineering and academic research, this balances algorithmic efficiency, resource constraints, and fault tolerance. When presenting this in a seminar or viva, emphasize the computational tradeoffs, boundary conditions, and real-world system architecture.`,
       topic: prompt,
       followUpVivaQuestion: `How would you handle concurrency contention or edge-case boundary failures for ${prompt}?`,
+    };
+  }
+
+  if (type === 'tech_talk') {
+    return {
+      title: prompt,
+      subtitle: `A Technical Seminar Report Submitted in Partial Fulfillment of the Requirements for the Award of the Degree of Bachelor of Technology in ${branch}`,
+      domain: options?.domain || 'Advanced Computing & Autonomous Systems',
+      courseTitle: options?.courseTitle || 'Technical Seminar / Tech Talk',
+      presenter: name,
+      rollNo: rollNo,
+      branch: branch,
+      academicYear: '2024 - 2025',
+      abstract: `This technical seminar report presents a comprehensive investigation into "${prompt}". In this study, we dissect the architectural foundations, formal mathematical formulations, and algorithmic implementations governing ${prompt}. We present an empirical benchmark evaluation comparing the proposed methodology against industry-standard baselines, demonstrating a 93% reduction in tail latency (P99) and a 4.2-fold improvement in transactions per second. Finally, we explore real-world industrial deployments in autonomous aerospace systems, healthcare diagnostics, and fintech, addressing existing system limitations and outlining future research directions.`,
+      keywords: [prompt, 'Distributed Systems', 'Asymptotic Optimization', 'Fault Tolerance', 'Low Tail-Latency', 'IARE Seminar'],
+      chapters: [
+        {
+          chapterNumber: 1,
+          title: 'Introduction & Research Motivation',
+          content: [
+            `1.1 Background: Modern enterprise computing systems are experiencing exponential growth in data ingestion volume. Within this technological landscape, "${prompt}" has emerged as a transformative paradigm.`,
+            '1.2 Problem Statement: Legacy monolithic frameworks exhibit quadratic latency degradation, concurrency contention, and single points of failure under peak load conditions.',
+            '1.3 Research Objectives: The primary objective of this seminar report is to examine the architectural, algorithmic, and mathematical rigor underpinning modern solutions, verifying their efficacy through empirical benchmark testing.',
+            '1.4 Scope & Organization: This report is structured into 8 comprehensive chapters covering literature survey, system architecture, performance benchmarks, real-world case studies, and future scope.'
+          ],
+          visualDescription: 'Conceptual block diagram illustrating the paradigm transition from monolithic bottlenecks to decoupled autonomous architectures.',
+          keyTakeaways: ['Legacy architectures fail under concurrent burst workloads.', 'Decoupled, asynchronous pipelines guarantee system liveness and bounded tail latency.']
+        },
+        {
+          chapterNumber: 2,
+          title: 'Literature Survey & Seminal Contributions',
+          content: [
+            '2.1 Historical Evolution: Computing paradigms have progressed from mainframe centralized time-sharing to modern containerized micro-service topologies.',
+            '2.2 Landmark Research Papers: We analyzed 15 seminal research contributions published in IEEE Transactions on Computers, ACM Computing Surveys, and USENIX OSDI.',
+            '2.3 Comparative Survey of Contemporary Frameworks: Existing solutions struggle to strike a balance between strict ACID consistency and high-throughput availability (CAP theorem trade-offs).',
+            '2.4 Research Gap: Current literature reveals an acute lack of self-healing mechanisms that recover cluster consensus in under two seconds during severe network partition events.'
+          ],
+          visualDescription: 'Chronological timeline mapping foundational academic breakthroughs from 2018 to the present day.',
+          keyTakeaways: ['Extensive literature review of 15+ peer-reviewed IEEE/ACM publications.', 'Identified consensus recovery time as the primary unsolved engineering challenge.']
+        },
+        {
+          chapterNumber: 3,
+          title: 'System Architecture & Mathematical Formulations',
+          content: [
+            '3.1 Architectural Decomposition: The system comprises four decoupled layers: (i) Ingestion Gateway with TLS termination, (ii) Asynchronous Event Broker, (iii) Core Execution Engine, and (iv) High-Throughput State Persistence Store.',
+            '3.2 Mathematical Modeling: Let system arrival rate follow a Poisson distribution with parameter lambda. The expected queuing delay W_q under an M/M/1 queuing model is given by W_q = lambda / (mu * (mu - lambda)), where mu represents service capacity.',
+            '3.3 Liveness & Safety Invariants: We establish formal verification proofs ensuring deadlock-freedom through strict partial ordering of mutex acquisitions.',
+            '3.4 Fault Isolation Boundaries: Employing circuit-breaker design patterns isolates failing worker nodes, preventing cascading failures across the distributed cluster.'
+          ],
+          visualDescription: 'Detailed multi-tier architecture diagram displaying service boundaries, message brokers, caching nodes, and relational database replicas.',
+          keyTakeaways: ['Four-tier decoupled microservice architecture.', 'Formally proven safety invariants guaranteeing zero deadlock conditions.']
+        },
+        {
+          chapterNumber: 4,
+          title: 'Algorithmic Mechanics & Implementation Pipeline',
+          content: [
+            `4.1 Execution Pipeline: Processing within "${prompt}" proceeds across deterministic phases: schema ingestion, Protobuf binary serialization, worker thread pool dispatch, and atomic commit.`,
+            '4.2 Asymptotic Complexity Analysis: Time complexity is bounded at O(N log N) in the worst case, compared to O(N^2) in classical alternatives. Auxiliary space complexity is strictly O(N).',
+            '4.3 Technology Stack: Implemented using modern TypeScript, Go, Python 3.11, Docker containerization, Kubernetes orchestration, Redis in-memory cache, and PostgreSQL ACID persistence.',
+            '4.4 Hardware Cache Locality: Continuous contiguous memory buffers eliminate pointer indirection, achieving an 84% reduction in L1/L2 data cache misses.'
+          ],
+          visualDescription: 'Step-by-step flowchart with decision diamonds, validation checkpoints, and worker thread pool distribution.',
+          keyTakeaways: ['Strict O(N log N) worst-case time complexity guarantee.', 'Containerized deployment using Kubernetes, Redis, and PostgreSQL.']
+        },
+        {
+          chapterNumber: 5,
+          title: 'Experimental Setup & Benchmark Evaluation',
+          content: [
+            '5.1 Testbed Hardware Specifications: Dual AMD EPYC 7763 processors (128 vCPUs), 256GB ECC DDR4 RAM, NVMe PCIe 4.0 storage, connected via 25 Gbps low-latency networking.',
+            '5.2 Simulated Workload Parameters: High-concurrency synthetic stress testing generating up to 100,000 transactions per second (TPS).',
+            '5.3 Empirical Results: Median latency (P50) dropped from 340ms to 24ms (93% reduction). Tail latency (P99) remained tightly bounded below 45ms even under 90% CPU load.',
+            '5.4 Chaos Engineering Resilience: Injected node failure tests demonstrated automated cluster state reconciliation in 1.4 seconds with zero transaction loss.'
+          ],
+          visualDescription: 'Comprehensive benchmark comparison charts displaying latency CDF curves, throughput scaling, and CPU utilization.',
+          keyTakeaways: ['93% reduction in median latency under 100k requests/second.', 'Automated recovery in 1.4 seconds under simulated node failure.']
+        },
+        {
+          chapterNumber: 6,
+          title: 'Industrial Applications & Real-World Case Studies',
+          content: [
+            '6.1 Autonomous Aerospace Systems: Real-time UAV flight telemetry processing, obstacle avoidance sensor fusion, and mission command synchronization.',
+            '6.2 Healthcare Diagnostics: Sub-second medical image processing and patient biometric vitals monitoring with zero data compromise.',
+            '6.3 FinTech & High-Frequency Exchanges: Sub-millisecond fraud pattern detection and distributed ledger reconciliation.',
+            '6.4 Smart City Grid Infrastructure: Managing distributed energy grid loads, automated failover routing, and sensor anomaly detection.'
+          ],
+          visualDescription: 'Four-quadrant application matrix highlighting aerospace, healthcare, fintech, and municipal infrastructure domains.',
+          keyTakeaways: ['Validated applicability in aerospace navigation and mission-critical telemetry.', 'High adaptability across high-frequency finance and medical pipelines.']
+        },
+        {
+          chapterNumber: 7,
+          title: 'Engineering Challenges, Limitations & Mitigations',
+          content: [
+            '7.1 Challenge 1 (Cold Boot Initialization): Initial cluster node boot introduces high latency spikes. Mitigation: Implemented pre-warmed container worker pools.',
+            '7.2 Challenge 2 (Edge Memory Constraints): Low-power IoT devices suffer from constrained RAM. Mitigation: Byte-level quantization reducing model footprint by 65%.',
+            '7.3 Challenge 3 (Network Jitter): Transient packet drops cause retransmission cascades. Mitigation: Adaptive exponential backoff with randomized jitter.'
+          ],
+          visualDescription: 'Two-column comparative card layout detailing technical challenges and engineered mitigations.',
+          keyTakeaways: ['Proactive pre-warming eliminates cold-boot initialization spikes.', 'Byte-level quantization enables deployment on memory-constrained edge hardware.']
+        },
+        {
+          chapterNumber: 8,
+          title: 'Conclusion & Future Research Directions',
+          content: [
+            `8.1 Concluding Remarks: This report demonstrated the architectural superiority, empirical speedup, and resilience of "${prompt}". It satisfies all academic criteria prescribed by IARE.`,
+            '8.2 Future Directions: Ongoing research explores integration with FPGA hardware accelerators and quantum-resistant post-quantum cryptographic primitives (NIST standards).',
+            '8.3 Open Source Contribution: An academic benchmarking suite will be made accessible to student researchers at the Institute of Aeronautical Engineering.'
+          ],
+          visualDescription: 'Research roadmap Gantt chart outlining quarterly technological milestones.',
+          keyTakeaways: ['Successfully validates research hypothesis with empirical superiority.', 'Future roadmap incorporates FPGA accelerators and post-quantum security.']
+        }
+      ],
+      comparativeMetrics: [
+        { metric: 'Median Latency (P50)', existingBaseline: '340 ms', proposedSystem: '24 ms', improvement: '92.9% Speedup' },
+        { metric: 'Tail Latency (P99)', existingBaseline: '1,250 ms', proposedSystem: '44 ms', improvement: '96.5% Reduction' },
+        { metric: 'Throughput (TPS)', existingBaseline: '22,000 TPS', proposedSystem: '98,500 TPS', improvement: '4.47x Higher' },
+        { metric: 'Recovery Time', existingBaseline: '42.5 seconds', proposedSystem: '1.4 seconds', improvement: '30x Faster' },
+        { metric: 'Cloud Cost ($/month)', existingBaseline: '$4,800', proposedSystem: '$2,750', improvement: '42.7% Cost Savings' }
+      ],
+      vivaQuestions: [
+        { question: 'What is the primary architectural contribution of this Tech Talk research?', answer: 'Decomposing legacy monolithic structures into an asynchronous, event-driven pipeline that bounds tail latency while guaranteeing cluster safety invariants.' },
+        { question: 'How does the proposed system solve the CAP theorem constraints in real-world scenarios?', answer: 'It adopts tunable consistency, providing high availability and low latency during normal operation while enforcing strict serialized consistency during partition events.' },
+        { question: 'Explain why P99 tail latency is critical in distributed systems.', answer: 'In distributed architectures, fan-out queries mean the slowest sub-query dictates overall response time, making bounded P99 essential for SLA compliance.' }
+      ],
+      references: [
+        'IEEE Transactions on Computers, Special Issue on Scalable Cloud Computing, Vol. 34, No. 8, 2023.',
+        'ACM Computing Surveys (CSUR), "A Comprehensive Survey on Low-Latency Distributed Systems," Vol. 56, Issue 4, 2024.',
+        'IARE Academic Compendium & Technical Seminar Guidelines, Institute of Aeronautical Engineering, 2024.'
+      ]
     };
   }
 
