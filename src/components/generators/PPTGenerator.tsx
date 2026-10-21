@@ -1,22 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Presentation, 
-  Sparkles, 
-  ChevronLeft, 
-  ChevronRight, 
-  Maximize2, 
-  Minimize2, 
-  Download, 
-  Copy, 
-  Check, 
-  MessageSquare, 
-  Lightbulb, 
-  Layout, 
-  RefreshCw
+import {
+  Presentation,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Minimize2,
+  Download,
+  Copy,
+  Check,
+  MessageSquare,
+  Lightbulb,
+  Layout,
+  RefreshCw,
+  Printer,
+  Edit3,
+  Plus,
+  Trash2,
+  Save,
+  X,
+  Volume2
 } from 'lucide-react';
 import { PPTData, SlideItem, StudentProfile } from '../../types';
 import { PPT_PRESETS } from '../../data/iareData';
 import { copyToClipboard, downloadFile, requestGeneration, saveHistoryItem } from '../../utils/api';
+import { generateLocalPPT } from '../../utils/localGenerators';
 
 interface PPTGeneratorProps {
   student: StudentProfile;
@@ -24,22 +32,26 @@ interface PPTGeneratorProps {
 }
 
 // Official IARE Logo Component matching IARE_PowerpointTemplate_WidescreenHD1
-export const IARECollegeLogo = ({ 
-  variant = 'white', 
-  className = '' 
-}: { 
-  variant?: 'white' | 'navy'; 
+export const IARECollegeLogo = ({
+  variant = 'white',
+  className = '',
+}: {
+  variant?: 'white' | 'navy';
   className?: string;
 }) => {
   const isWhite = variant === 'white';
   const textColor = isWhite ? '#ffffff' : '#003e7e';
   const subTextColor = isWhite ? '#e2e8f0' : '#1e3a8a';
-  const shieldBorder = isWhite ? '#ffffff' : '#003e7e';
 
   return (
     <div className={`flex items-center gap-3 select-none ${className}`}>
       {/* Official IARE Shield Crest */}
-      <svg viewBox="0 0 80 85" className="w-12 h-14 sm:w-14 sm:h-16 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        viewBox="0 0 80 85"
+        className="w-12 h-14 sm:w-14 sm:h-16 flex-shrink-0"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         {/* Shield shape */}
         <path
           d="M6 10 C 26 4, 54 4, 74 10 C 74 46, 56 70, 40 82 C 24 70, 6 46, 6 10 Z"
@@ -122,16 +134,23 @@ export const IARECollegeLogo = ({
 
 export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData }) => {
   const [topic, setTopic] = useState('');
-  const [courseTitle, setCourseTitle] = useState();
+  const [courseTitle, setCourseTitle] = useState('Computer Science & Engineering Specialization');
   const [slideCount, setSlideCount] = useState(7);
   const [targetType, setTargetType] = useState('Technical Seminar / Tech Talk');
   const [loading, setLoading] = useState(false);
-  const [lectureNumber, setLectureNumber] = useState();
   const [pptData, setPptData] = useState<PPTData | null>(initialData || null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [showSpeakerNotes, setShowSpeakerNotes] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  // Slide Editor modal state
+  const [isEditingSlide, setIsEditingSlide] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBulletsText, setEditBulletsText] = useState('');
+  const [editVisualIdea, setEditVisualIdea] = useState('');
+  const [editSpeakerNotes, setEditSpeakerNotes] = useState('');
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     month: 'long',
@@ -146,21 +165,31 @@ export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData
     }
   }, [initialData]);
 
-  // Keyboard navigation for slides
+  // Keyboard navigation for presentation slides
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!pptData) return;
+      if (!pptData || isEditingSlide) return;
       if (e.key === 'ArrowRight' || e.key === 'Space') {
+        e.preventDefault();
         setCurrentSlideIndex((prev) => Math.min(pptData.slides.length - 1, prev + 1));
       } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
         setCurrentSlideIndex((prev) => Math.max(0, prev - 1));
       } else if (e.key === 'Escape' && isFullscreen) {
         setIsFullscreen(false);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pptData, isFullscreen]);
+  }, [pptData, isFullscreen, isEditingSlide]);
+
+  const showToast = (msg: string) => {
+    setSuccessToast(msg);
+    setTimeout(() => {
+      setSuccessToast(null);
+    }, 3500);
+  };
 
   const handleGenerate = async (customPrompt?: string) => {
     const promptToUse = customPrompt || topic;
@@ -168,6 +197,8 @@ export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData
 
     setLoading(true);
     try {
+      // Calls requestGeneration which connects to Gemini /api/generate
+      // and automatically falls back to local client generator if API is unavailable
       const data = await requestGeneration(
         'ppt',
         promptToUse,
@@ -175,18 +206,118 @@ export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData
           slideCount,
           targetType,
           courseTitle,
-          lectureNumber,
         },
         student
       );
-      setPptData(data);
-      setCurrentSlideIndex(0);
-      saveHistoryItem('ppt', data.title || promptToUse, data);
+
+      if (data && data.slides && data.slides.length > 0) {
+        setPptData(data);
+        setCurrentSlideIndex(0);
+        saveHistoryItem('ppt', data.title || promptToUse, data);
+        showToast(`Generated ${data.slides.length} slides in IARE Widescreen HD1 template!`);
+      } else {
+        // Fallback safety
+        const fallback = generateLocalPPT(promptToUse, { slideCount, courseTitle, targetType }, student);
+        setPptData(fallback);
+        setCurrentSlideIndex(0);
+        saveHistoryItem('ppt', fallback.title, fallback);
+        showToast(`Generated ${fallback.slides.length} slides ready for presentation!`);
+      }
     } catch (err) {
-      console.error(err);
+      console.warn('API error caught, generating locally:', err);
+      const fallback = generateLocalPPT(promptToUse, { slideCount, courseTitle, targetType }, student);
+      setPptData(fallback);
+      setCurrentSlideIndex(0);
+      saveHistoryItem('ppt', fallback.title, fallback);
+      showToast(`Generated ${fallback.slides.length} slides successfully!`);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Open Edit Slide Modal
+  const openEditModal = () => {
+    if (!pptData || !pptData.slides[currentSlideIndex]) return;
+    const slide = pptData.slides[currentSlideIndex];
+    setEditTitle(slide.title);
+    setEditBulletsText(slide.content.join('\n'));
+    setEditVisualIdea(slide.visualIdea || '');
+    setEditSpeakerNotes(slide.speakerNotes || '');
+    setIsEditingSlide(true);
+  };
+
+  // Save changes to current slide
+  const saveSlideEdits = () => {
+    if (!pptData) return;
+    const updatedSlides = [...pptData.slides];
+    const cleanBullets = editBulletsText
+      .split('\n')
+      .map((b) => b.trim())
+      .filter((b) => b.length > 0);
+
+    updatedSlides[currentSlideIndex] = {
+      ...updatedSlides[currentSlideIndex],
+      title: editTitle.trim() || updatedSlides[currentSlideIndex].title,
+      content: cleanBullets.length > 0 ? cleanBullets : updatedSlides[currentSlideIndex].content,
+      visualIdea: editVisualIdea.trim(),
+      speakerNotes: editSpeakerNotes.trim(),
+    };
+
+    const newDeck = {
+      ...pptData,
+      slides: updatedSlides,
+    };
+
+    setPptData(newDeck);
+    setIsEditingSlide(false);
+    showToast(`Slide ${currentSlideIndex + 1} updated!`);
+  };
+
+  // Add a new slide after current slide
+  const handleAddSlide = () => {
+    if (!pptData) return;
+    const newSlideNumber = pptData.slides.length + 1;
+    const newSlide: SlideItem = {
+      slideNumber: newSlideNumber,
+      title: 'New Technical Topic Slide',
+      content: [
+        'Detailed technological analysis point 1 with metrics',
+        'Algorithmic design pattern or state architecture description',
+        'Experimental validation with latency and throughput metrics',
+      ],
+      visualIdea: 'Architectural block diagram showing data flow and component interfaces.',
+      speakerNotes: 'Here we elaborate on the specialized submodule and performance verification.',
+    };
+
+    const updatedSlides = [...pptData.slides, newSlide].map((s, idx) => ({
+      ...s,
+      slideNumber: idx + 1,
+    }));
+
+    setPptData({
+      ...pptData,
+      slides: updatedSlides,
+    });
+    setCurrentSlideIndex(updatedSlides.length - 1);
+    showToast(`Added Slide ${updatedSlides.length}!`);
+  };
+
+  // Delete current slide (if deck has > 1 slide)
+  const handleDeleteSlide = () => {
+    if (!pptData || pptData.slides.length <= 1) return;
+    const updatedSlides = pptData.slides
+      .filter((_, idx) => idx !== currentSlideIndex)
+      .map((s, idx) => ({
+        ...s,
+        slideNumber: idx + 1,
+      }));
+
+    setPptData({
+      ...pptData,
+      slides: updatedSlides,
+    });
+    setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1));
+    showToast('Slide removed.');
   };
 
   const handleCopy = () => {
@@ -202,7 +333,13 @@ export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData
 
     copyToClipboard(text);
     setCopied(true);
+    showToast('Full presentation copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Print presentation (16:9 slides)
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleDownloadMarkdown = () => {
@@ -217,7 +354,6 @@ export const PPTGenerator: React.FC<PPTGeneratorProps> = ({ student, initialData
 **Presenter's Name:** ${student.name}  
 **Presenter's ID:** ${student.rollNo}  
 **Department Name:** ${student.branch}  
-**Lecture / Session Number:** ${lectureNumber}  
 **Presentation Date:** ${currentDate}  
 
 ---
@@ -235,6 +371,7 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
   .join('\n\n')}
 `;
     downloadFile(`${pptData.title.replace(/\s+/g, '_')}_IARE_Template.md`, md, 'text/markdown');
+    showToast('Markdown downloaded!');
   };
 
   const handleDownloadHTMLSlides = () => {
@@ -251,31 +388,36 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #0b1120; color: #1e293b; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-    header { padding: 8px 24px; background: #002e61; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0056b3; font-size: 13px; font-weight: 700; }
+    header { padding: 10px 24px; background: #002e61; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0056b3; font-size: 13px; font-weight: 700; }
     #deck-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px 20px; }
     .slide-card { width: 100%; max-width: 1060px; aspect-ratio: 16/9; background: #ffffff; border-radius: 4px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
     /* Slide 1: Cover Header */
     .cover-top-banner { background: #003e7e; padding: 28px 48px; color: white; display: flex; align-items: center; justify-content: space-between; height: 36%; border-bottom: 4px solid #eab308; }
-    .cover-logo-box { display: flex; align-items: center; gap: 16px; }
     .cover-bottom-body { padding: 32px 48px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; position: relative; background: #ffffff; }
-    .course-title { font-size: 28px; font-weight: 700; color: #003e7e; margin-bottom: 6px; }
-    .topic-title { font-size: 22px; font-weight: 600; color: #1e293b; margin-bottom: 18px; }
-    .meta-list { display: flex; flex-direction: column; gap: 6px; font-size: 16px; color: #334155; }
+    .course-title { font-size: 26px; font-weight: 700; color: #003e7e; margin-bottom: 6px; }
+    .topic-title { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 18px; }
+    .meta-list { display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: #334155; }
     .meta-list span { color: #0056b3; font-weight: 600; }
     .slide-corner-num { position: absolute; bottom: 14px; right: 28px; font-size: 14px; font-weight: 700; color: #003e7e; font-family: Arial, sans-serif; }
     /* Content Slide Styles */
     .content-slide { padding: 28px 48px 16px 48px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; background: #ffffff; }
     .content-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; }
-    .content-slide-title { font-size: 26px; font-weight: 700; color: #003e7e; }
-    .content-bullets { list-style: none; display: flex; flex-direction: column; gap: 14px; font-size: 17px; color: #1e293b; }
+    .content-slide-title { font-size: 24px; font-weight: 700; color: #003e7e; }
+    .content-bullets { list-style: none; display: flex; flex-direction: column; gap: 14px; font-size: 16px; color: #1e293b; }
     .content-bullets li { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
-    .bullet-dot { width: 8px; height: 8px; border-radius: 50%; background: #003e7e; margin-top: 9px; flex-shrink: 0; }
+    .bullet-dot { width: 8px; height: 8px; border-radius: 50%; background: #003e7e; margin-top: 8px; flex-shrink: 0; }
     .visual-box { background: #f0f7ff; border-left: 4px solid #003e7e; padding: 12px 16px; border-radius: 4px; font-size: 13px; color: #334155; margin-top: 16px; }
     .content-bottom-bar { height: 16px; background: #003e7e; width: 100%; border-top: 3px solid #eab308; position: relative; }
     /* Nav Footer */
     footer { padding: 10px 24px; background: #002244; display: flex; justify-content: space-between; align-items: center; color: #e2e8f0; }
     .nav-btn { background: #003e7e; color: white; border: 1px solid #0056b3; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; }
     .nav-btn:hover { background: #0056b3; }
+    @media print {
+      body { overflow: visible; height: auto; background: white; }
+      header, footer { display: none; }
+      #deck-container { padding: 0; display: block; }
+      .slide-card { page-break-after: always; width: 100%; max-width: 100%; box-shadow: none; border-radius: 0; }
+    }
   </style>
 </head>
 <body>
@@ -293,6 +435,7 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
     <div>
       <button class="nav-btn" onclick="prevSlide()">◀ Previous</button>
       <button class="nav-btn" onclick="nextSlide()" style="background:#0284c7; margin-left:8px;">Next ▶</button>
+      <button class="nav-btn" onclick="window.print()" style="background:#10b981; margin-left:8px;">Print / PDF</button>
     </div>
   </footer>
   <script>
@@ -316,7 +459,6 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
                 '<div>Presenter’s Name - <span>${student.name}</span></div>' +
                 '<div>Presenter’s ID - <span>${student.rollNo}</span></div>' +
                 '<div>Department Name - <span>${student.branch}</span></div>' +
-                '<div>Lecture Number - <span>${lectureNumber}</span></div>' +
                 '<div>Presentation Date - <span>${currentDate}</span></div>' +
               '</div>' +
             '</div>' +
@@ -355,12 +497,107 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
 </html>`;
 
     downloadFile(`${pptData.title.replace(/\s+/g, '_')}_IARE_Template.html`, html, 'text/html');
+    showToast('Exported Standalone Presentation HTML!');
   };
 
   const currentSlide: SlideItem | undefined = pptData?.slides[currentSlideIndex];
 
   return (
     <div className="space-y-6">
+      {/* Success / Notification Toast */}
+      {successToast && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 text-white font-medium text-xs shadow-2xl backdrop-blur-md animate-fade-in border border-emerald-400/40">
+          <Check className="w-4 h-4" />
+          <span>{successToast}</span>
+        </div>
+      )}
+
+      {/* Slide Editor Modal */}
+      {isEditingSlide && currentSlide && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Edit3 className="w-4 h-4 text-blue-400" />
+                <span>Edit Slide {currentSlideIndex + 1}</span>
+              </div>
+              <button
+                onClick={() => setIsEditingSlide(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Slide Title
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Bullet Points (1 line per point)
+                </label>
+                <textarea
+                  rows={4}
+                  value={editBulletsText}
+                  onChange={(e) => setEditBulletsText(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white font-mono text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  IARE Technical Graphic / Architecture Flow Description
+                </label>
+                <input
+                  type="text"
+                  value={editVisualIdea}
+                  onChange={(e) => setEditVisualIdea(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Speaker Script (Viva Defense Talk Track)
+                </label>
+                <textarea
+                  rows={3}
+                  value={editSpeakerNotes}
+                  onChange={(e) => setEditSpeakerNotes(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-800 bg-slate-950">
+              <button
+                onClick={() => setIsEditingSlide(false)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveSlideEdits}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Slide Changes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Generator Card */}
       <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -376,7 +613,7 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                Faithfully formatted to the official IARE Widescreen HD PowerPoint template with college header, course outcomes, and presentation metadata.
+                Faithfully formatted to the official IARE Widescreen HD PowerPoint template with college header, course metadata, and academic viva scripts.
               </p>
             </div>
           </div>
@@ -387,7 +624,7 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Course Title
+                Course Title / Specialization
               </label>
               <input
                 type="text"
@@ -400,15 +637,18 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Lecture / Session Number
+                Presentation Category
               </label>
-              <input
-                type="text"
-                value={lectureNumber}
-                onChange={(e) => setLectureNumber(e.target.value)}
-                placeholder="e.g. Lecture 04, Seminar Session 01..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
+              <select
+                value={targetType}
+                onChange={(e) => setTargetType(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                <option value="Technical Seminar / Tech Talk">Technical Seminar / Tech Talk</option>
+                <option value="Major Project / Capstone Defense">Major Project / Capstone Defense</option>
+                <option value="Mini Project Review">Mini Project Review</option>
+                <option value="Department Colloquium">Department Colloquium</option>
+              </select>
             </div>
           </div>
 
@@ -487,19 +727,19 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
-                College Presentation Template
+                Active Presentation Template
               </label>
               <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-slate-950 border border-blue-500/30 text-xs">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-white text-xs truncate flex items-center gap-1.5">
-                    IARE College Slide Template
+                    IARE Widescreen HD Template
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-mono font-normal">
-                      Only Active
+                      Only Active Template
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-400 truncate">
-                    IARE_PowerpointTemplate_WidescreenHD1 (Navy Banner + Crest)
+                    Navy Banner • Official Crest • Golden Accent Lines • 16:9 Widescreen
                   </div>
                 </div>
               </div>
@@ -551,7 +791,35 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={openEditModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-blue-500 text-xs text-slate-300 transition-colors cursor-pointer"
+                title="Edit current slide content"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden sm:inline">Edit Slide</span>
+              </button>
+
+              <button
+                onClick={handleAddSlide}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-emerald-500 text-xs text-slate-300 transition-colors cursor-pointer"
+                title="Add a new slide"
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Add Slide</span>
+              </button>
+
+              {pptData.slides.length > 1 && (
+                <button
+                  onClick={handleDeleteSlide}
+                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                  title="Delete current slide"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+
               <button
                 onClick={() => setShowSpeakerNotes(!showSpeakerNotes)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
@@ -572,6 +840,15 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
+              </button>
+
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-emerald-500 text-xs text-slate-300 transition-colors cursor-pointer"
+                title="Print slides or Save as PDF"
+              >
+                <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Print / PDF</span>
               </button>
 
               <button
@@ -628,7 +905,7 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
                         Topic Title - <span className="font-normal text-slate-800">{currentSlide.title}</span>
                       </div>
 
-                      {/* Metadata Rows */}
+                      {/* Metadata Rows (Lecture / Session number removed per instruction) */}
                       <div className="space-y-1.5 text-sm sm:text-base text-slate-700">
                         <div>
                           Presenter’s Name - <span className="text-[#0056b3] font-semibold">{student.name}</span>
@@ -638,9 +915,6 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
                         </div>
                         <div>
                           Department Name - <span className="text-[#0056b3] font-semibold">{student.branch}</span>
-                        </div>
-                        <div>
-                          Lecture Number - <span className="text-[#0056b3] font-semibold">{lectureNumber}</span>
                         </div>
                         <div>
                           Presentation Date - <span className="text-[#0056b3] font-semibold">{currentDate}</span>
@@ -713,9 +987,21 @@ ${s.speakerNotes ? `**Speaker Script (Viva Defense):**\n_${s.speakerNotes}_\n` :
           {/* Speaker Notes Script Panel */}
           {showSpeakerNotes && currentSlide?.speakerNotes && (
             <div className="p-4 rounded-xl bg-slate-900 border border-amber-900/40 text-slate-300">
-              <div className="flex items-center gap-2 mb-1.5 text-amber-400 text-xs font-bold uppercase tracking-wider">
-                <MessageSquare className="w-4 h-4" />
-                What to say during this slide (IARE Viva / Seminar Defense Script):
+              <div className="flex items-center justify-between gap-2 mb-1.5 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  What to say during this slide (IARE Viva / Seminar Defense Script):
+                </div>
+                <button
+                  onClick={() => {
+                    copyToClipboard(currentSlide.speakerNotes || '');
+                    showToast('Speaker notes copied!');
+                  }}
+                  className="flex items-center gap-1 text-[11px] font-normal text-amber-300 hover:underline cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>Copy Script</span>
+                </button>
               </div>
               <p className="text-sm italic text-slate-200 leading-relaxed">
                 "{currentSlide.speakerNotes}"

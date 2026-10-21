@@ -1,4 +1,5 @@
 import { SavedHistoryItem, StudentProfile, TabType } from '../types';
+import { generateLocalPPT } from './localGenerators';
 
 export const DEFAULT_STUDENT_PROFILE: StudentProfile = {
   name: 'Rahul Varma',
@@ -83,6 +84,7 @@ export async function requestGeneration(
   options: any = {},
   studentInfo?: StudentProfile
 ) {
+  const profile = studentInfo || getSavedStudentProfile();
   try {
     const res = await fetch('/api/generate', {
       method: 'POST',
@@ -93,7 +95,7 @@ export async function requestGeneration(
         type,
         prompt,
         options,
-        studentInfo: studentInfo || getSavedStudentProfile(),
+        studentInfo: profile,
       }),
     });
 
@@ -102,9 +104,15 @@ export async function requestGeneration(
     }
 
     const json = await res.json();
-    return json.data;
+    if (json.data) {
+      return json.data;
+    }
+    throw new Error('No data in server response');
   } catch (err) {
-    console.warn('API fetch error, falling back locally:', err);
+    console.warn('API fetch error, falling back to local engine:', err);
+    if (type === 'ppt') {
+      return generateLocalPPT(prompt, options, profile);
+    }
     throw err;
   }
 }
